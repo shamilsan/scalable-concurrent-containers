@@ -108,7 +108,16 @@ where
     /// ```
     #[inline]
     #[must_use]
+    #[cfg(not(loom))]
     pub const fn new() -> Self {
+        Self {
+            root: AtomicShared::null(),
+        }
+    }
+
+    #[cfg(loom)]
+    #[allow(missing_docs)]
+    pub fn new() -> Self {
         Self {
             root: AtomicShared::null(),
         }

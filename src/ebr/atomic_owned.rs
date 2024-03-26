@@ -1,9 +1,9 @@
 use super::ref_counted::RefCounted;
+use super::sync::atomic::AtomicPtr;
 use super::{Guard, Owned, Ptr, Tag};
 use std::mem::forget;
 use std::panic::UnwindSafe;
 use std::ptr::{null_mut, NonNull};
-use std::sync::atomic::AtomicPtr;
 use std::sync::atomic::Ordering::{self, Relaxed};
 
 /// [`AtomicOwned`] owns the underlying instance, and allows users to perform atomic operations
@@ -54,7 +54,18 @@ impl<T> AtomicOwned<T> {
     /// ```
     #[inline]
     #[must_use]
+    #[cfg(not(loom))]
     pub const fn from(owned: Owned<T>) -> Self {
+        let ptr = owned.get_underlying_ptr();
+        forget(owned);
+        Self {
+            instance_ptr: AtomicPtr::new(ptr),
+        }
+    }
+
+    #[cfg(loom)]
+    #[allow(missing_docs)]
+    pub fn from(owned: Owned<T>) -> Self {
         let ptr = owned.get_underlying_ptr();
         forget(owned);
         Self {
@@ -73,7 +84,16 @@ impl<T> AtomicOwned<T> {
     /// ```
     #[inline]
     #[must_use]
+    #[cfg(not(loom))]
     pub const fn null() -> Self {
+        Self {
+            instance_ptr: AtomicPtr::new(null_mut()),
+        }
+    }
+
+    #[cfg(loom)]
+    #[allow(missing_docs)]
+    pub fn null() -> Self {
         Self {
             instance_ptr: AtomicPtr::new(null_mut()),
         }

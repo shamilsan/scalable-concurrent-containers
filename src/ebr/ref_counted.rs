@@ -1,8 +1,8 @@
+use super::sync::atomic::AtomicUsize;
 use super::Collectible;
 use std::mem::ManuallyDrop;
 use std::ops::Deref;
 use std::ptr::NonNull;
-use std::sync::atomic::AtomicUsize;
 use std::sync::atomic::Ordering::{self, Relaxed};
 
 /// [`RefCounted`] stores an instance of type `T`, and a union of a link to the next
@@ -15,7 +15,16 @@ pub(super) struct RefCounted<T> {
 impl<T> RefCounted<T> {
     /// Creates a new [`RefCounted`] that allows ownership sharing.
     #[inline]
+    #[cfg(not(loom))]
     pub(super) const fn new_shared(t: T) -> Self {
+        Self {
+            instance: t,
+            next_or_refcnt: LinkOrRefCnt::new_shared(),
+        }
+    }
+
+    #[cfg(loom)]
+    pub(super) fn new_shared(t: T) -> Self {
         Self {
             instance: t,
             next_or_refcnt: LinkOrRefCnt::new_shared(),
@@ -26,7 +35,16 @@ impl<T> RefCounted<T> {
     ///
     /// The reference counter field is never used until the instance is retired.
     #[inline]
+    #[cfg(not(loom))]
     pub(super) const fn new_unique(t: T) -> Self {
+        Self {
+            instance: t,
+            next_or_refcnt: LinkOrRefCnt::new_unique(),
+        }
+    }
+
+    #[cfg(loom)]
+    pub(super) fn new_unique(t: T) -> Self {
         Self {
             instance: t,
             next_or_refcnt: LinkOrRefCnt::new_unique(),
@@ -151,14 +169,30 @@ pub(super) union LinkOrRefCnt {
 
 impl LinkOrRefCnt {
     #[inline]
+    #[cfg(not(loom))]
     const fn new_shared() -> Self {
         LinkOrRefCnt {
             refcnt: ManuallyDrop::new((AtomicUsize::new(1), 0)),
         }
     }
 
+    #[cfg(loom)]
+    fn new_shared() -> Self {
+        LinkOrRefCnt {
+            refcnt: ManuallyDrop::new((AtomicUsize::new(1), 0)),
+        }
+    }
+
     #[inline]
+    #[cfg(not(loom))]
     const fn new_unique() -> Self {
+        LinkOrRefCnt {
+            refcnt: ManuallyDrop::new((AtomicUsize::new(0), 0)),
+        }
+    }
+
+    #[cfg(loom)]
+    fn new_unique() -> Self {
         LinkOrRefCnt {
             refcnt: ManuallyDrop::new((AtomicUsize::new(0), 0)),
         }
