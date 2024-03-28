@@ -1,5 +1,10 @@
-use super::sync::atomic::{fence, AtomicPtr, AtomicU8};
-use super::{Collectible, Guard, Tag};
+use super::sync::{
+    atomic::{fence, AtomicPtr, AtomicU8},
+    thread_local,
+};
+use super::{Collectible, Tag};
+#[cfg(not(loom))]
+use super::Guard;
 use crate::exit_guard::ExitGuard;
 use std::panic;
 use std::ptr::{self, NonNull};
@@ -361,6 +366,7 @@ fn mark_scan_enforced() {
     });
 }
 
+#[cfg(not(loom))]
 fn try_drop_local_collector() {
     let collector_ptr = LOCAL_COLLECTOR.with(|local_collector| local_collector.load(Relaxed));
     if let Some(collector) = unsafe { collector_ptr.as_mut() } {
@@ -385,6 +391,9 @@ fn try_drop_local_collector() {
         mark_scan_enforced();
     }
 }
+
+#[cfg(loom)]
+fn try_drop_local_collector() {}
 
 thread_local! {
     static COLLECTOR_ANCHOR: CollectorAnchor = CollectorAnchor;
