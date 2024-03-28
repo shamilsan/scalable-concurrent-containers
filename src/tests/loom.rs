@@ -8,7 +8,7 @@ mod loom_tests {
     #[test]
     fn guard_works() {
         loom::model(|| {
-            let item: AtomicShared<String> = AtomicShared::from(Shared::new(String::from("boom")));
+            let item = AtomicShared::from(Shared::new(String::from("boom")));
             let item2 = <AtomicShared<String> as Clone>::clone(&item);
             let guard = Guard::new();
 

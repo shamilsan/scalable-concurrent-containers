@@ -2,9 +2,9 @@ use super::sync::{
     atomic::{fence, AtomicPtr, AtomicU8},
     thread_local,
 };
-use super::{Collectible, Tag};
 #[cfg(not(loom))]
 use super::Guard;
+use super::{Collectible, Tag};
 use crate::exit_guard::ExitGuard;
 use std::panic;
 use std::ptr::{self, NonNull};
