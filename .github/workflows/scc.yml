@@ -58,6 +58,8 @@ jobs:
         run: cargo +nightly miri test --lib --bins --tests
       - name: Nightly
         run: cargo +nightly test --release benchmark
+      - name: Loom
+        run: RUSTFLAGS="--cfg loom" cargo test --release -- loom_tests
   benchmark:
     runs-on: ubuntu-latest
     timeout-minutes: 15

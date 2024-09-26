@@ -30,6 +30,7 @@ pub use tag::Tag;
 
 mod collector;
 mod ref_counted;
+mod sync;
 
 /// Suspends the garbage collector of the current thread.
 ///
